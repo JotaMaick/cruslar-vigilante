@@ -33,14 +33,24 @@ jobs:
           URL_LATIDO: ${{ secrets.URL_LATIDO }}
         run: python3 vigilar.py
 
+      # El push PUEDE fallar si alguien tocó el repo mientras corría la
+      # comprobación (pasó el 12-ago). Y si falla, el estado no se guarda y la
+      # siguiente pasada repite el aviso que ya mandó. Por eso reintenta
+      # reintegrando lo de fuera: guardar el estado importa tanto como comprobar.
       - name: Guardar el estado si ha cambiado
         run: |
-          if [ -n "$(git status --porcelain estado.json)" ]; then
-            git config user.name  "Vigilante Cruslar"
-            git config user.email "info@cruslar.com"
-            git add estado.json
-            git commit -m "vigilante: $(date -u '+%Y-%m-%d %H:%M UTC')"
-            git push
-          else
-            echo "sin cambios que guardar"
+          if [ -z "$(git status --porcelain estado.json)" ]; then
+            echo "sin cambios que guardar"; exit 0
           fi
+          git config user.name  "Vigilante Cruslar"
+          git config user.email "info@cruslar.com"
+          git add estado.json
+          git commit -m "vigilante: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          for intento in 1 2 3; do
+            if git push; then echo "guardado en el intento $intento"; exit 0; fi
+            echo "rechazado; reintegro lo de fuera y reintento"
+            git pull --rebase --autostash origin main || exit 1
+            sleep 3
+          done
+          echo "::error::no pude guardar el estado tras 3 intentos"
+          exit 1
