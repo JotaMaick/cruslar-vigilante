@@ -1,6 +1,6 @@
 {
- "fallos_seguidos": 1,
- "avisado": false,
+ "fallos_seguidos": 2,
+ "avisado": true,
  "dia": "2026-08-12",
- "comprobado": "2026-08-12 13:53 UTC"
+ "comprobado": "2026-08-12 13:57 UTC"
 }
