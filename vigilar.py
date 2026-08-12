@@ -34,6 +34,11 @@ from datetime import datetime, timezone
 ESTADO = "estado.json"
 FRESCURA_MAX = 25 * 60      # el guardián escribe cada 10 min: 25 da margen a 2 fallos
 FALLOS_PARA_AVISAR = 2      # dos pasadas seguidas (10 min) antes de molestar
+# NO QUITAR NI CAMBIAR A LA LIGERA: Cloudflare bloquea con 403 el agente por
+# defecto de Python ("Python-urllib/3.8") por su comprobación de integridad del
+# navegador. Sin un agente propio, este vigilante avisaría de caídas FALSAS cada
+# 5 minutos, con los sitios funcionando perfectamente. Comprobado el 12-ago:
+# mismo fichero, mismo momento → Python-urllib 403, este agente 200.
 AGENTE = "VigilanteCruslar/1.0 (+https://github.com/JotaMaick/cruslar-vigilante)"
 
 
