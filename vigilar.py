@@ -121,7 +121,12 @@ def main():
 
     sitios = [l.strip() for l in open("sitios.txt", encoding="utf-8")
               if l.strip() and not l.startswith("#")]
-    fallos = revisar_sitios(sitios) + revisar_latido(os.environ.get("URL_LATIDO", ""))
+    # Se separan a propósito: que la web no responda y que el centinela esté mudo
+    # son dos averías MUY distintas, y meterlas bajo el mismo titular haría que
+    # un aviso dijera "Cruslar no responde" con la web funcionando perfectamente.
+    caidos = revisar_sitios(sitios)
+    mudos = revisar_latido(os.environ.get("URL_LATIDO", ""))
+    fallos = caidos + mudos
 
     if fallos:
         # El contador se TOPA en el umbral: si no, durante una caída larga
@@ -135,16 +140,24 @@ def main():
         estado["fallos_seguidos"] = 0
 
     if estado["fallos_seguidos"] >= FALLOS_PARA_AVISAR and not estado["avisado"]:
-        telegram("🔴 CRUSLAR NO RESPONDE\n\n"
-                 + "\n".join("· " + f for f in fallos)
-                 + "\n\nComprobado dos veces desde fuera del servidor (GitHub), "
-                   "con 10 minutos de diferencia, así que no es un fallo de red puntual.\n\n"
-                   "Si el servidor entero está caído, los avisos de dentro tampoco "
-                   "van a llegar: este es el único que lo ve.")
+        if caidos:
+            titular = ("🔴 CRUSLAR NO RESPONDE\n\n"
+                       "Los sitios no contestan desde fuera. Si el servidor entero está "
+                       "caído, los avisos de dentro tampoco van a llegar: este es el "
+                       "único que puede verlo.\n")
+        else:
+            titular = ("🟠 EL CENTINELA NO DA SEÑALES\n\n"
+                       "Ojo: la web funciona con normalidad. Lo que falla es la "
+                       "vigilancia — el servidor ha dejado de publicar su estado, así "
+                       "que ahora mismo nadie garantiza que se estén parando los "
+                       "ataques.\n")
+        telegram(titular + "\n" + "\n".join("· " + f for f in fallos)
+                 + "\n\nComprobado dos veces desde fuera (GitHub), con 10 minutos "
+                   "de diferencia: no es un fallo de red puntual.")
         estado["avisado"] = True
     elif not fallos and estado["avisado"]:
-        telegram("🟢 CRUSLAR RECUPERADO\n\n"
-                 "Los sitios responden y el latido del vigía vuelve a estar fresco.")
+        telegram("🟢 TODO RECUPERADO\n\n"
+                 "Los sitios responden y el centinela vuelve a dar señales de vida.")
         estado["avisado"] = False
 
     # El estado SOLO sobrevive si se hace commit: el runner de GitHub se destruye
