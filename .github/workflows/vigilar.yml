@@ -1,0 +1,46 @@
+name: Vigilar Cruslar
+
+# Cada 5 minutos. GitHub avisa de que los cron pueden retrasarse en horas punta:
+# para detectar una caída eso da igual, y a cambio no cuesta nada en repos
+# públicos. El vigilante no necesita ser puntual, necesita EXISTIR cuando el
+# servidor no esté.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:        # para poder lanzarlo a mano y comprobar que funciona
+
+permissions:
+  contents: write           # solo para guardar estado.json entre pasadas
+
+concurrency:
+  group: vigilar            # si una pasada se retrasa, que no se pisen dos
+  cancel-in-progress: false
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar sitios y latido
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          # La URL del latido va en un secreto A PROPÓSITO: el repositorio es
+          # público, y si la ruta fuese visible cualquiera podría consultar si el
+          # vigía está caído justo antes de atacar.
+          URL_LATIDO: ${{ secrets.URL_LATIDO }}
+        run: python3 vigilar.py
+
+      - name: Guardar el estado si ha cambiado
+        run: |
+          if [ -n "$(git status --porcelain estado.json)" ]; then
+            git config user.name  "Vigilante Cruslar"
+            git config user.email "info@cruslar.com"
+            git add estado.json
+            git commit -m "vigilante: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          else
+            echo "sin cambios que guardar"
+          fi

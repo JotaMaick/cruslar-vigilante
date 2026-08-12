@@ -1,0 +1,8 @@
+# Sitios que se comprueban desde fuera cada 5 minutos.
+# Basta con que respondan: un 302 o un 401 significa que el servidor está vivo,
+# que es lo único que este vigilante puede y debe juzgar desde la distancia.
+# Solo se considera avería que NO responda o que devuelva un error 5xx.
+https://cruslar.com/
+https://crm.cruslar.com/index.php/signin
+https://cruslar.es/
+https://panel.jotamaick.com/
